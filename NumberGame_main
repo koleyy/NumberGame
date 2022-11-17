@@ -1,0 +1,90 @@
+from tkinter import *
+import random
+from NumberGame_AVL import *
+
+
+class GUI:
+    def __init__(self, window):
+        self.window = window
+
+        self.frame_question = Frame(self.window)
+        self.label_question = Label(self.frame_question, text='Have you seen this number')
+        self.label_question.pack(padx=5, side='left')
+        self.frame_question.pack(pady=10)
+
+        self.frame_number = Frame(self.window)
+        self.label_number = Label(self.frame_number, text=number)
+        self.label_number.pack(padx=5, side='left')
+        self.frame_number.pack(pady=10)
+
+        self.frame_buttons = Frame(self.window)
+        self.button_yes = Button(self.frame_buttons, text='yes', command=self.clicked_yes)
+        self.button_yes.pack(side='left', padx=10)
+        self.button_no = Button(self.frame_buttons, text='no', command=self.clicked_no)
+        self.button_no.pack(side='right', padx=10)
+        self.frame_buttons.pack()
+
+    def clicked_yes(self):
+        global number
+        print(number)
+        if avl.contains(number):
+            number = random.randint(0, max_size)
+            widgets.label_number['text'] = number
+
+        elif not avl.contains(number):
+            print(number)
+            widgets.label_question['text'] = 'You lose'
+            widgets.label_number['text'] = f'Score = {avl.size()}'
+            self.button_no.forget()
+            self.button_yes.forget()
+
+        self.check_for_win()
+
+    def clicked_no(self):
+        global number
+        if avl.contains(number):
+            print(number)
+            widgets.label_question['text'] = 'You lose'
+            widgets.label_number['text'] = f'Score = {avl.size()}'
+            self.button_no.forget()
+            self.button_yes.forget()
+
+        elif not avl.contains(number):
+            print(number)
+            avl.add(number)
+            print(avl.asList())
+            number = random.randint(0, max_size)
+            widgets.label_number['text'] = number
+
+        self.check_for_win()
+
+    def check_for_win(self):
+        if avl.size() == max_size + 1:
+            widgets.label_question['text'] = f'You win!'
+            widgets.label_number['text'] = f'Score = {avl.size()}'
+            self.button_no.forget()
+            self.button_yes.forget()
+
+    def restart(self):
+        # reset game
+        # get rid of reset button
+        # add yes and no buttons back
+        # increase difficulty by 1 (or make the user choose how far to increase difficulty by)
+        # only increase difficulty if they won, otherwise restart
+        pass
+
+
+# set up game values
+# create avl tree
+avl = AVL()
+# set difficulty
+max_size = 50
+number = 0
+
+# create GUI
+window_ = Tk()
+window_.title('Number Game')
+window_.geometry('250x180')
+window_.resizable(False, False)
+widgets = GUI(window_)
+window_.mainloop()
