@@ -1,0 +1,470 @@
+"""
+Node class for the binary search tree.
+"""
+from node import *
+
+'''
+class Node:
+
+    def __init__(self, value):
+        self.value = value  # The value at this node
+        self.left = None  # A link (if any) to a node with a lesser value
+        self.right = None  # A link (if any) to a node with a greater value
+'''
+
+"""
+The binary search tree class. Has one member variable, root, 
+which is the first node (if there are any)
+"""
+
+
+class AVL:
+    """
+    BST constructor.
+    Holds the root of the tree.
+    """
+
+    def __init__(self):
+        self.root = None
+
+    """
+    Adds a value to the BST.
+    Balances the tree after adding a value.
+    """
+
+    def add(self, value):
+        node = Node(value)
+        current = self.root
+
+        # if the root points to None, point to the first node just added
+        if self.root is None:
+            self.root = node
+
+        # if the root points to something
+        else:
+            previous = None
+            self.addRecursive(previous, current, node)
+            # check for balance here - if >< 2 -2 send to balancing function with previous,current
+            balanceValue = self.heightOfNode(current.right) - self.heightOfNode(current.left)
+            if balanceValue >= 2 or balanceValue <= -2:
+                self.balance(previous, current, balanceValue)
+        return self
+
+    def addRecursive(self, previous, current, node_to_add):
+        # if current is pointing to something
+
+        if node_to_add.value < current.value:
+            # if the left side doesn't point to anything, point to the value just added
+            if current.left is None:
+                current.left = node_to_add
+            # if the left side does have a value, call the add function on that side
+            # replacing the current argument with the current.left we want to be the new current
+            else:
+                self.addRecursive(current, current.left, node_to_add)
+        # if the nodes value is greater than the current nodes value
+        elif node_to_add.value > current.value:
+            # if the right side points to None, point to the value just added
+            if current.right is None:
+                current.right = node_to_add
+            # if the right side has a value, call the add function on that side
+            # replacing the current argument with the current.right we want to be the new current
+            else:
+                self.addRecursive(current, current.right, node_to_add)
+
+        # check for balance here - if >< 2 -2 send to balancing function with previous,current
+        balanceValue = self.heightOfNode(current.right) - self.heightOfNode(current.left)
+        if balanceValue >= 2 or balanceValue <= -2:
+            self.balance(previous, current, balanceValue)
+
+    """
+    Remove a value from the BST.
+    The value may not exist, values will not be duplicated. 
+    Balances the tree after removing a value.
+    """
+
+    def remove(self, value):
+        current = self.root
+        previous = None
+
+        # if the root points to None, do nothing
+        if self.root is None:
+            return self
+        # if the root = value, and has no children
+        if self.root.value == value and self.root.left is None and self.root.right is None:
+            self.root = None
+        # if the root = value, and it has ONLY a left child
+        elif self.root.value == value and self.root.left is not None and self.root.right is None:
+            self.root = self.root.left
+        # if the root = value, and it has ONLY a right child
+        elif self.root.value == value and self.root.left is None and self.root.right is not None:
+            self.root = self.root.right
+        # if the root = value, and it has BOTH children
+        elif self.root.value == value and self.root.left is not None and self.root.right is not None:
+            root_left = self.root.left
+            root_right = self.root.right
+            # set new root to the left value
+            self.root = root_left
+            # attach right value(s) onto rightmost value of the left node
+            self.attach_to_rightmost_left_value(root_left, root_right)
+
+        # if the root points to something
+        else:
+            self.removeRecursive(None, previous, current, value)
+            # check for balance here - if >< 2 -2 send to balancing function with previous,current
+            balanceValue = self.heightOfNode(current.right) - self.heightOfNode(current.left)
+            if balanceValue >= 2 or balanceValue <= -2:
+                self.balance(previous, current, balanceValue)
+
+        return self
+
+    """
+    After pulling root_left up, attach root_right to the rightmost part of root_left
+    """
+    def attach_to_rightmost_left_value(self, current, value_to_attach):
+        if current.right is None:
+            current.right = value_to_attach
+        else:
+            self.attach_to_rightmost_left_value(current.right, value_to_attach)
+
+    """
+    Recursive helper for remove 
+    """
+    def removeRecursive(self, grandparent, previous, current, value):
+        if value == current.value:
+            # accepts the correct previous and current values
+            self.actuallyRemoveAfterFinding(grandparent, previous, current)
+
+        if value < current.value:
+            # if the left side doesn't point to anything, we didn't find a value to remove, return
+            if current.left is None:
+                return self
+            # if the left side does have a value, but it's not value, call the remove function on that side
+            else:
+                self.removeRecursive(previous, current, current.left, value)
+        # if value is greater than the current nodes value
+        elif value > current.value:
+            # if the right side points to None, we didn't find a value to remove, return
+            if current.right is None:
+                return self
+            # if the right side does have a value, but it's not value, call the remove function on that side
+            else:
+                self.removeRecursive(previous, current, current.right, value)
+
+        # after removing the node we need a new current node
+        # if there's a left child assign current to the left as that's what gets pulled up in removal
+        if current.left:
+            current = current.left
+        # if no left child, check for right child as that will be what is pulled up
+        elif current.right:
+            current = current.right
+        # if no children, assign current to the parent of the node that was removed
+        elif previous:
+            current = previous
+
+        # check for balance here - if >< 2 -2 send to balancing function with previous,current
+        balanceValue = self.heightOfNode(current.right) - self.heightOfNode(current.left)
+        if balanceValue >= 2 or balanceValue <= -2:
+            self.balance(previous, current, balanceValue)
+
+    """
+    Stores all cases of removal.
+    Keeps removing the values separate from finding the values
+    """
+    def actuallyRemoveAfterFinding(self, grandparent, previous, current):
+        # no children
+        if current.left is None and current.right is None:
+            # if the current child is the parents left child, point the parents left pointer to None
+            if previous.left is not None:
+                if previous.left.value == current.value:
+                    previous.left = None
+            # if the current child is the parents right child, point the parents right pointer to None
+            if previous.right is not None:
+                if previous.right.value == current.value:
+                    previous.right = None
+
+        # node to remove has a left child
+        # if the current child is the parents left child, point the parents left pointer to None
+        if current.left is not None and current.right is None:
+            if previous.left is not None:
+                if previous.left.value == current.value:
+                    previous.left = current.left
+            # if the current child is the parents right child, point the parents right pointer to None
+            if previous.right is not None:
+                if previous.right.value == current.value:
+                    previous.right = current.left
+
+        # node to remove has a right child
+        if current.left is None and current.right is not None:
+            # if the current child is the parents left child, point the parents left pointer to current's children
+            if previous.left is not None:
+                if previous.left.value == current.value:
+                    previous.left = current.right
+            # if the current child is the parents right child, point the parents right pointer to current's children
+            if previous.right is not None:
+                if previous.right.value == current.value:
+                    previous.right = current.right
+
+        # node to remove has both children
+        if current.left is not None and current.right is not None:
+            # if the current child is the parents left child, point the parents left pointer to current's children
+            if previous.left is not None:
+                if previous.left.value == current.value:
+                    # keep track of the kids
+                    left_child = current.left
+                    right_child = current.right
+                    # point the parent to currents left child
+                    previous.left = left_child
+                    # attach the right child to current's left child's tree
+                    self.attach_to_rightmost_left_value(left_child, right_child)
+
+            # if the current child is the parents right child, point the parents right pointer to current's children
+            if previous.right is not None:
+                if previous.right.value == current.value:
+                    # keep track of the kids
+                    left_child = current.left
+                    right_child = current.right
+                    # point the parent to currents left child
+                    previous.right = left_child
+                    # attach the right child to current's left child's tree
+                    self.attach_to_rightmost_left_value(left_child, right_child)
+
+    """
+    Determines what type of balancing is needed on the unbalanced node provided.
+    """
+    def balance(self, parent, current, balanceValue):
+        #if statements checking for the 4 cases of rotation
+
+        # if balanceValue = 2, rotate left
+        if balanceValue == 2:
+            childBalance = self.heightOfNode(current.right.right) - self.heightOfNode(current.right.left)
+            #print('unbalanced', current.value)
+            if childBalance == -1:
+                # double rotation
+                self.rotateRight(current, current.right)
+                self.rotateLeft(parent, current)
+            else:
+                # single rotation
+                self.rotateLeft(parent, current)
+
+        # if balanceValue = -2, rotate right
+        if balanceValue == -2:
+            childBalance = self.heightOfNode(current.left.right) - self.heightOfNode(current.left.left)
+            if childBalance == 1:
+                # double rotation
+                self.rotateLeft(current, current.left)
+                self.rotateRight(parent, current)
+            else:
+                # single rotation
+                self.rotateRight(parent, current)
+        pass
+
+    """
+    Rotates the current node to the right 
+    """
+    def rotateRight(self, parent, current):
+        # if balance >= 2, rotate right
+
+        # unbalanced node becomes newLeft
+        newRight = current
+        # left child becomes newTop
+        newTop = current.left
+        # left child's right child becomes oldRight
+        oldRight = newTop.right
+
+        # attach newTop to where old top used to be
+        # if current was the root attach newTop to the root
+        if current == self.root:
+            self.root = newTop
+        else:
+            # if current was the right child, attach the newTop to the parent's right child
+            if parent.right and parent.right.value == current.value:
+                parent.right = newTop
+            # if current was the left child, attach the newTop to the parent's left child
+            if parent.left and parent.left.value == current.value:
+                parent.left = newTop
+
+        # attach newRight to newTop's right child
+        newTop.right = newRight
+        # attach the oldRight to newRight's left child
+        newRight.left = oldRight
+
+    """
+    Rotates the current node to the left 
+    """
+    def rotateLeft(self, parent, current):
+        # if balance <= 2, rotate left
+
+        # unbalanced node becomes newLeft
+        newLeft = current
+        # right child becomes newTop
+        newTop = current.right
+        # right child's left child becomes oldLeft
+        oldLeft = newTop.left
+
+        # attach newTop to where old top used to be
+        # if current was the root attach newTop to the root
+        if current == self.root:
+            self.root = newTop
+        else:
+            # if current was the right child, attach the newTop to the parent's right child
+            if parent.right and parent.right.value == current.value:
+                parent.right = newTop
+            # if current was the left child, attach the newTop to the parent's left child
+            if parent.left and parent.left.value == current.value:
+                parent.left = newTop
+
+        # attach newLeft to newTop's left child
+        newTop.left = newLeft
+        # attach the oldLeft to newLeft's right child
+        newLeft.right = oldLeft
+
+    """
+    True if the BST contains the given value, false otherwise.
+    """
+
+    def contains(self, value):
+        current = self.root
+
+        # if the root points to None, the tree is empty, return False
+        if self.root is None:
+            return False
+
+        # if the root points to something
+        else:
+            return self.containsRecursive(current, value)
+
+    """
+    Recursive helper for contains
+    """
+    def containsRecursive(self, current, value):
+        if current.value == value:
+            return True
+        if value < current.value:
+            # if the left side doesn't point to anything, we didn't find the value, return False
+            if current.left is None:
+                return False
+            # if the left side does have a value, and it = value, return true
+            elif value == current.value:
+                return True
+            # if the left side does have a value, but it's not value, call the contains helper function on that side
+            else:
+                return self.containsRecursive(current.left, value)
+
+        # if value is greater than the current nodes value
+        elif value > current.value:
+            # if the right side points to None, we didn't find a value, return False
+            if current.right is None:
+                return False
+            # if the right side has a value, and it = value, return True
+            elif value == current.value:
+                return True
+            # if the left side does have a value, but it's not value, call the contains helper function on that side
+            else:
+                return self.containsRecursive(current.right, value)
+
+    """
+    Returns the number of values in the BST.
+    """
+    def size(self):
+        if self.root is None:
+            return 0
+        else:
+            return self.recursiveSize(self.root.left) + self.recursiveSize(self.root.right) + 1
+
+    """
+    Recursive helper for size
+    """
+    def recursiveSize(self, current):
+        if current is None:
+            return 0
+        else:
+            return self.recursiveSize(current.left) + self.recursiveSize(current.right) + 1
+
+    """
+    Return the BST as a list.
+    Uses a pre-order traversal.
+    """
+    def asList(self):
+        preOrderList = []
+        current = self.root
+        if self.root is None:
+            return []
+        else:
+            # add to the list
+            preOrderList.append(current.value)
+            # recurse left
+            self.recursiveAsList(current.left, preOrderList)
+            # recurse right
+            self.recursiveAsList(current.right, preOrderList)
+            return preOrderList
+
+    """
+    Recursive helper for asList
+    """
+    def recursiveAsList(self, current, preOrderList):
+        if current is None:
+            # no value to append so back out
+            pass
+        else:
+            # add to the list
+            preOrderList.append(current.value)
+            # recurse left
+            self.recursiveAsList(current.left, preOrderList)
+            # recurse right
+            self.recursiveAsList(current.right, preOrderList)
+
+    """
+    Returns the height of the tree.
+    """
+    def height(self):
+        current = self.root
+        if current is None:
+            return 0
+        else:
+            # max( left_child's_height , right_child's_height ) + 1
+            return max([self.recursiveHeight(current.left), self.recursiveHeight(current.right)]) + 1
+
+    """
+    Recursive helper for height
+    """
+    def recursiveHeight(self, current):
+        if current is None:
+            # hit the bottom of the tree
+            return 0
+        else:
+            # max( left_child's_height , right_child's_height ) + 1
+            return max([self.recursiveHeight(current.left), self.recursiveHeight(current.right)]) + 1
+
+    """
+    Returns the height of the current node given
+    """
+    def heightOfNode(self, current):
+        if current is None:
+            return 0
+        else:
+            # max( left_child's_height , right_child's_height ) + 1
+            return max([self.recursiveHeight(current.left), self.recursiveHeight(current.right)]) + 1
+
+    """
+    Recursive helper for heightOfNode
+    """
+    def recursiveHeightOfNode(self, current):
+        if current is None:
+            # hit the bottom of the tree
+            return 0
+        else:
+            # max( left_child's_height , right_child's_height ) + 1
+            return max([self.recursiveHeightOfNode(current.left), self.recursiveHeightOfNode(current.right)]) + 1
+
+
+""" 
+Things completed:
+check for each node's balance backing out of recursion
+call balance function
+
+Functions
+rotate right
+rotate left
+balance
+    in balance, check what case we are dealing with and call necessary rotations
+"""
